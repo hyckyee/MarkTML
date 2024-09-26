@@ -83,69 +83,55 @@
 
     <script>
    function htmlLikeMarkdownToHtml(markdown) {
-    // Handle CSS styles
-    markdown = markdown.replace(/~~style: (.*?)~~/g, (match, css) => {
-        return `<style>${css}</style>`;
-    });
+    // 기존 스타일 및 요소 변환 코드 (헤딩, 볼드, 이탤릭 등)
 
-    // Replace headings
-    markdown = markdown.replace(/^(#{1,6})\s*(.*)$/gm, (match, hashes, title) => {
-        const level = hashes.length;
-        return `<h${level}>${title}</h${level}>`;
-    });
+    // 표 처리 로직 추가
+    const lines = markdown.split('\n');
+    let inTable = false;
+    let tableHTML = '';
 
-    // Replace bold and italic text
-    markdown = markdown.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                       .replace(/__(.+?)__/g, '<strong>$1</strong>')
-                       .replace(/\*(.+?)\*/g, '<em>$1</em>')
-                       .replace(/_(.+?)_/g, '<em>$1</em>');
-
-    // Replace buttons with customizable colors
-    markdown = markdown.replace(/~~button: (.*?); color: (.*?);~~/g, (match, text, color) => {
-        return `<button style="background-color: ${color}; color: white;">${text}</button>`;
-    });
-
-    // Replace sliders
-    markdown = markdown.replace(/~~slider: (.*?); color: (.*?);~~/g, (match, value, color) => {
-        return `<input type="range" value="${value}" style="accent-color: ${color};" />`;
-    });
-
-    // Handle blockquotes
-    markdown = markdown.replace(/^\>\s*(.*)$/gm, '<blockquote>$1</blockquote>');
-
-    // Handle tables
-    markdown = markdown.replace(/\|(.+?)\|/g, (match) => {
-        const rows = match.split('\n');
-        let tableHTML = '<table>\n';
-
-        // Create table header
-        tableHTML += '<thead>\n<tr>\n';
-        const headers = rows[0].split('|');
-        headers.forEach(header => {
-            tableHTML += `<th>${header.trim()}</th>\n`;
-        });
-        tableHTML += '</tr>\n</thead>\n<tbody>\n';
-
-        // Create table rows
-        for (let i = 2; i < rows.length; i++) { // Skip header separator
-            tableHTML += '<tr>\n';
-            const cells = rows[i].split('|');
+    for (let line of lines) {
+        if (line.startsWith('|') && !inTable) {
+            // 테이블이 시작될 때 <table> 태그로 시작
+            inTable = true;
+            tableHTML += '<table>\n<thead>\n<tr>';
+            let headers = line.split('|').filter(cell => cell.trim() !== '');
+            headers.forEach(header => {
+                tableHTML += `<th>${header.trim()}</th>`;
+            });
+            tableHTML += '</tr>\n</thead>\n<tbody>\n';
+        } else if (inTable && line.startsWith('|')) {
+            // 테이블 내에 있는 줄들을 <tr><td>로 변환
+            tableHTML += '<tr>';
+            let cells = line.split('|').filter(cell => cell.trim() !== '');
             cells.forEach(cell => {
-                tableHTML += `<td>${cell.trim()}</td>\n`;
+                tableHTML += `<td>${cell.trim()}</td>`;
             });
             tableHTML += '</tr>\n';
+        } else if (inTable && line.trim() === '') {
+            // 빈 줄이 나오면 테이블을 닫음
+            inTable = false;
+            tableHTML += '</tbody>\n</table>\n';
         }
+    }
 
+    if (inTable) {
+        // 테이블이 끝나지 않았을 때 닫기
         tableHTML += '</tbody>\n</table>\n';
-        return tableHTML;
-    });
+    }
 
-    // Handle paragraphs
-    markdown = markdown.replace(/\n\n+/g, '</p><p>');
-    markdown = markdown.replace(/^(?!<h|<ul|<ol|<li|<blockquote|<hr|<dl|<dt|<dd|<code|<table|<button|<input).+/gm, '<p>$&</p>');
+    // 테이블이 있는 경우, 전체 텍스트에서 표 부분을 대체
+    if (tableHTML) {
+        markdown = markdown.replace(/\|.+?\|/g, tableHTML);
+    }
+
+    // 나머지 기존 변환 로직
+    markdown = markdown.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>'); // 볼드 처리
+    markdown = markdown.replace(/\*(.+?)\*/g, '<em>$1</em>'); // 이탤릭 처리
 
     return markdown;
 }
+
 
         function escapeHtml(html) {
             const text = document.createElement('textarea');
