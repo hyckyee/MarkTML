@@ -8,24 +8,24 @@
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
-            background-color: #f0f8ff; /* Light background for contrast */
+            background-color: #f0f8ff;
         }
         h1, h2 {
-            color: #005f5f; /* Dark teal for headings */
+            color: #005f5f;
             margin-bottom: 10px;
         }
         #markdown-input {
             width: 100%;
             height: 200px;
-            border: 1px solid #ADEFD1; /* Border color matching theme */
+            border: 1px solid #ADEFD1;
             border-radius: 4px;
             padding: 10px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            resize: none; /* Prevent resizing */
-            font-size: 16px; /* Increased font size for better readability */
+            resize: none;
+            font-size: 16px;
         }
         #convert-button {
-            background-color: #ADEFD1; /* Theme color for button */
+            background-color: #ADEFD1;
             color: white;
             border: none;
             border-radius: 4px;
@@ -33,26 +33,26 @@
             cursor: pointer;
             margin-top: 10px;
             transition: background-color 0.3s;
-            font-size: 16px; /* Increased font size */
+            font-size: 16px;
         }
         #convert-button:hover {
-            background-color: #8dc6c0; /* Darker shade on hover */
+            background-color: #8dc6c0;
         }
         #html-output, #html-code {
             border: 1px solid #ccc;
             padding: 10px;
             margin-top: 20px;
-            background: #ffffff; /* White background for output area */
+            background: #ffffff;
             border-radius: 4px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            white-space: pre-wrap; /* Preserve whitespace */
+            white-space: pre-wrap;
         }
         pre, code {
-            background-color: #f9f9f9; /* Light background for code */
-            border: 1px solid #ddd; /* Border around code blocks */
-            padding: 5px; /* Padding for better readability */
-            border-radius: 3px; /* Rounded corners */
-            overflow-x: auto; /* Allow horizontal scroll */
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 5px;
+            border-radius: 3px;
+            overflow-x: auto;
         }
         table {
             border-collapse: collapse;
@@ -60,12 +60,12 @@
             margin-top: 10px;
         }
         th, td {
-            border: 1px solid #ADEFD1; /* Border color matching theme */
+            border: 1px solid #ADEFD1;
             padding: 8px;
             text-align: left;
         }
         th {
-            background-color: #e6f7f7; /* Light background for headers */
+            background-color: #e6f7f7;
         }
     </style>
 </head>
@@ -82,68 +82,86 @@
     <div id="html-code"></div>
 
     <script>
-   function htmlLikeMarkdownToHtml(markdown) {
-    // 기존 스타일 및 요소 변환 코드 (헤딩, 볼드, 이탤릭 등)
-
-    // 표 처리 로직 추가
-    const lines = markdown.split('\n');
-    let inTable = false;
-    let tableHTML = '';
-
-    for (let line of lines) {
-        if (line.startsWith('|') && !inTable) {
-            // 테이블이 시작될 때 <table> 태그로 시작
-            inTable = true;
-            tableHTML += '<table>\n<thead>\n<tr>';
-            let headers = line.split('|').filter(cell => cell.trim() !== '');
-            headers.forEach(header => {
-                tableHTML += `<th>${header.trim()}</th>`;
+        function htmlLikeMarkdownToHtml(markdown) {
+            // Handle CSS styles
+            markdown = markdown.replace(/~~style: (.*?)~~/g, (match, css) => {
+                return `<style>${css}</style>`;
             });
-            tableHTML += '</tr>\n</thead>\n<tbody>\n';
-        } else if (inTable && line.startsWith('|')) {
-            // 테이블 내에 있는 줄들을 <tr><td>로 변환
-            tableHTML += '<tr>';
-            let cells = line.split('|').filter(cell => cell.trim() !== '');
-            cells.forEach(cell => {
-                tableHTML += `<td>${cell.trim()}</td>`;
+
+            // Replace headings
+            markdown = markdown.replace(/^(#{1,6})\s*(.*)$/gm, (match, hashes, title) => {
+                const level = hashes.length;
+                return `<h${level}>${title}</h${level}>`;
             });
-            tableHTML += '</tr>\n';
-        } else if (inTable && line.trim() === '') {
-            // 빈 줄이 나오면 테이블을 닫음
-            inTable = false;
-            tableHTML += '</tbody>\n</table>\n';
+
+            // Replace bold text
+            markdown = markdown.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            markdown = markdown.replace(/__(.+?)__/g, '<strong>$1</strong>');
+
+            // Replace italic text
+            markdown = markdown.replace(/\*(.+?)\*/g, '<em>$1</em>');
+            markdown = markdown.replace(/_(.+?)_/g, '<em>$1</em>');
+
+            // Replace links
+            markdown = markdown.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+
+            // Replace images
+            markdown = markdown.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />');
+
+            // Replace buttons with customizable colors
+            markdown = markdown.replace(/~~button: (.*?); color: (.*?);~~/g, (match, text, color) => {
+                return `<button style="background-color: ${color}; color: white;">${text}</button>`;
+            });
+
+            // Replace sliders with customizable colors
+            markdown = markdown.replace(/~~slider: (.*?); color: (.*?);~~/g, (match, value, color) => {
+                return `<input type="range" value="${value}" style="accent-color: ${color};" />`;
+            });
+
+            // Replace text fields with customizable colors
+            markdown = markdown.replace(/~~text: (.*?); color: (.*?);~~/g, (match, value, color) => {
+                return `<input type="text" value="${value}" style="border: 1px solid ${color};" />`;
+            });
+
+            // Replace unordered lists
+            markdown = markdown.replace(/^\*\s*(.*)$/gm, '<li>$1</li>');
+            markdown = markdown.replace(/(<li>.*?<\/li>)/g, '<ul>$1</ul>');
+
+            // Replace ordered lists
+            markdown = markdown.replace(/^\d+\.\s*(.*)$/gm, '<li>$1</li>');
+            markdown = markdown.replace(/(<li>.*?<\/li>)/g, '<ol>$1</ol>');
+
+            // Replace blockquotes
+            markdown = markdown.replace(/^\>\s*(.*)$/gm, '<blockquote>$1</blockquote>');
+
+            // Replace horizontal rules
+            markdown = markdown.replace(/^(---|\*\*\*|\*|-)\s*$/gm, '<hr />');
+
+            // Replace code blocks
+            markdown = markdown.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+            markdown = markdown.replace(/`(.+?)`/g, '<code>$1</code>');
+
+            // Replace strikethrough
+            markdown = markdown.replace(/~~(.+?)~~/g, '<del>$1</del>');
+
+            // Replace paragraphs
+            markdown = markdown.replace(/\n\n+/g, '</p><p>');
+            markdown = markdown.replace(/^(?!<h|<ul|<ol|<li|<p|<blockquote|<hr|<dl|<dt|<dd|<code).+/gm, '<p>$&</p>');
+
+            return markdown;
         }
-    }
 
-    if (inTable) {
-        // 테이블이 끝나지 않았을 때 닫기
-        tableHTML += '</tbody>\n</table>\n';
-    }
-
-    // 테이블이 있는 경우, 전체 텍스트에서 표 부분을 대체
-    if (tableHTML) {
-        markdown = markdown.replace(/\|.+?\|/g, tableHTML);
-    }
-
-    // 나머지 기존 변환 로직
-    markdown = markdown.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>'); // 볼드 처리
-    markdown = markdown.replace(/\*(.+?)\*/g, '<em>$1</em>'); // 이탤릭 처리
-
-    return markdown;
-}
-
-
-        function escapeHtml(html) {
+        function decodeHtml(html) {
             const text = document.createElement('textarea');
-            text.textContent = html;
-            return text.innerHTML;
+            text.innerHTML = html;
+            return text.value;
         }
 
         document.getElementById('convert-button').addEventListener('click', () => {
             const markdownInput = document.getElementById('markdown-input').value;
             const htmlOutput = htmlLikeMarkdownToHtml(markdownInput);
             document.getElementById('html-output').innerHTML = htmlOutput;
-            document.getElementById('html-code').textContent = escapeHtml(htmlOutput); // Display the HTML code
+            document.getElementById('html-code').textContent = decodeHtml(htmlOutput); // Display the HTML code
         });
     </script>
 
